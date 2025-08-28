@@ -5,10 +5,6 @@ const fileInput = document.querySelector("#file-input")
 const fileUploadWrapper = document.querySelector(".file-upload-wrapper")
 const fileCancelButton = document.querySelector("#file-cancel")
 
-// //API setup
-// const API_KEY = ""
-// const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-
 const userData = {
     message: null,
     file: {
@@ -18,7 +14,7 @@ const userData = {
 }
 
 //Create message element with dynamic classes and return it
-const createMessageElement = (content, ...classes) =>{
+const createMessageElement = (content, ...classes) => {
     const div = document.createElement("div")
     div.classList.add("message", ...classes)
     div.innerHTML = content
@@ -26,40 +22,40 @@ const createMessageElement = (content, ...classes) =>{
 }
 
 //Generate bot response using API
-const generateBotResponse = async(incomingMessageDiv) =>{
+const generateBotResponse = async (incomingMessageDiv) => {
     const messageElement = incomingMessageDiv.querySelector(".message-text")
 
     //API request options
     const requestOptions = {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             contents: [{
-                //parts: [{text: userData.message}] for text only
-                parts: [{text: userData.message}, ...(userData.file.data ? [{inline_data : userData.file}] : [])]
+                parts: [
+                    { text: userData.message },
+                    ...(userData.file.data ? [{ inline_data: userData.file }] : [])
+                ]
             }]
         })
     }
 
-    try{
-        //Fetch bot response from API
-        const response = await fetch("/api/chat", requestOptions)
+    try {
+        const response = await fetch("/.netlify/functions/chat", requestOptions)
         const data = await response.json()
-        if(!response.ok) throw new Error(data.error.message)
+        if (!response.ok) throw new Error(data.error.message)
 
-        //console.log(data)
         //Extract and display bot's response text
-        const apiResponseText = data.candidates[0].content.parts[0].text.replace(/\*\*(.*?)\*\*/g, "$1").trim()
+        const apiResponseText = data.candidates[0].content.parts[0].text
+            .replace(/\*\*(.*?)\*\*/g, "$1")
+            .trim()
         messageElement.innerText = apiResponseText
     }
-    catch(error){
-        //Handle error in api response
+    catch (error) {
         console.log(error)
         messageElement.innerText = error.message
         messageElement.style.color = "#ff0000"
     }
-    finally{
-        //Reset user's file data, removing thinking indicator and scroll chat to bottom
+    finally {
         userData.file = {}
         incomingMessageDiv.classList.remove("thinking")
         chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: "smooth" })
@@ -73,9 +69,11 @@ const handleOutGoingMessage = (e) => {
     messageInput.value = ""
     fileUploadWrapper.classList.remove("file-uploaded")
 
+    if (!userData.message && !userData.file.data) return
+
     //create and display user message
     const messageContent = `<div class="message-text"></div>
-                            ${userData.file.data ? `<img src = "data:${userData.file.mime_type};base64,${userData.file.data}" class="attachment" />` : ""}`;
+                            ${userData.file.data ? `<img src="data:${userData.file.mime_type};base64,${userData.file.data}" class="attachment" />` : ""}`
 
     const outgoingMessageDiv = createMessageElement(messageContent, "user-message")
     outgoingMessageDiv.querySelector(".message-text").innerText = userData.message
@@ -105,7 +103,7 @@ const handleOutGoingMessage = (e) => {
 //Handle Enter key press for sending messages
 messageInput.addEventListener("keydown", (e) => {
     const userMessage = e.target.value.trim()
-    if(e.key === "Enter" && userMessage){
+    if (e.key === "Enter" && userMessage) {
         handleOutGoingMessage(e)
     }
 })
@@ -113,7 +111,7 @@ messageInput.addEventListener("keydown", (e) => {
 //Handle file input change and preview the selected file
 fileInput.addEventListener("change", () => {
     const file = fileInput.files[0]
-    if(!file) return
+    if (!file) return
 
     //converting file to base64 format
     const reader = new FileReader()
@@ -145,14 +143,14 @@ const picker = new EmojiMart.Picker({
     skinTonePosition: "none",
     previewPosition: "none",
     onEmojiSelect: (emoji) => {
-        const {selectionStart: start, selectionEnd: end} = messageInput
+        const { selectionStart: start, selectionEnd: end } = messageInput
         messageInput.setRangeText(emoji.native, start, end, "end")
         messageInput.focus()
     },
     onClickOutside: (e) => {
-        if(e.target.id === "emoji-picker"){
+        if (e.target.id === "emoji-picker") {
             document.body.classList.toggle("show-emoji-picker")
-        }else{
+        } else {
             document.body.classList.remove("show-emoji-picker")
         }
     }
